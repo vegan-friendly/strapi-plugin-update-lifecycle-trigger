@@ -57,7 +57,7 @@ const MediaTab = () => {
     try {
       const response = await fetchClient.post("/strapi-regenerator/media", {
         types: values,
-        filterByText,
+        filterByText:filterByText.toLowerCase().trim(),
       });
       if (response.status >= 200 && response.status < 300) {
         setMessage(response.data.message);
@@ -110,7 +110,7 @@ const MediaTab = () => {
 Leave this box empty to update all entries.
 At the moment, this field can take only one field-name parameter."
           placeholder="Enter field name"
-          onChange={(e) => setfilterByText(e.target.value.toLowerCase())}
+          onChange={(e) => setfilterByText(e.target.value)}
         />
       </StyledWrapper>
       <StyledWrapper>
