@@ -1,17 +1,34 @@
 {
-  "name": "strapi-regenerator",
-  "version": "0.2.1",
+  "name": "@vegan-friendly/strapi-plugin-update-lifecycle-trigger",
+  "version": "1.0.10",
   "description": "A plugin for Strapi CMS that automates the triggering of update events for Strapi items, streamlining content and media management.",
-  "strapi": {
-    "name": "strapi-regenerator",
-    "description": "A plugin that can trigger update event of items.",
-    "kind": "plugin",
-    "displayName": "Regenerator"
+  "keywords": [
+    "strapi",
+    "plugin",
+    "media",
+    "regeneration",
+    "content management"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vegan-friendly/strapi-plugin-update-lifecycle-trigger.git"
   },
+  "license": "MIT",
+  "author": {
+    "name": "Emil Petras",
+    "url": "https://github.com/emil-petras"
+  },
+  "maintainers": [
+    {
+      "name": "Guy Finger",
+      "url": "https://github.com/GuyFinger"
+    }
+  ],
   "dependencies": {
     "@strapi/design-system": "^1.6.3",
     "@strapi/helper-plugin": "^4.6.0",
     "@strapi/icons": "^1.6.3",
+    "lodash": "^4.17.21",
     "prop-types": "^15.7.2"
   },
   "devDependencies": {
@@ -27,29 +44,16 @@
     "react-router-dom": "^5.2.0",
     "styled-components": "^5.2.1"
   },
-  "author": {
-    "name": "Emil Petras",
-    "url": "https://github.com/emil-petras"
-  },
-  "maintainers": [
-    {
-      "name": "Emil Petras",
-      "url": "https://github.com/emil-petras"
-    }
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/emil-petras/strapi-regenerator.git"
-  },
   "engines": {
     "npm": ">=6.0.0"
   },
-  "license": "MIT",
-  "keywords": [
-    "strapi",
-    "plugin",
-    "media",
-    "regeneration",
-    "content management"
-  ]
+  "publishConfig": {
+    "access": "public"
+  },
+  "strapi": {
+    "name": "strapi-regenerator",
+    "description": "A plugin that can trigger update event of items.",
+    "kind": "plugin",
+    "displayName": "Regenerator"
+  }
 }

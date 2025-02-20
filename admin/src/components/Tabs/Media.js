@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
-import { Box, Button, Typography, Loader, Status, MultiSelectNested } from '@strapi/design-system';
-import styled from 'styled-components';
-import { useFetchClient } from '@strapi/helper-plugin';
+import React, { useState } from "react";
+import {
+  Box,
+  Button,
+  Typography,
+  Loader,
+  Status,
+  MultiSelectNested,
+  Checkbox,
+  TextInput,
+} from "@strapi/design-system";
+import styled from "styled-components";
+import { useFetchClient } from "@strapi/helper-plugin";
 
 const StyledWrapper = styled.div`
   margin-bottom: 24px;
@@ -14,23 +23,31 @@ const MediaTab = () => {
   const [requested, setRequested] = useState(false);
   const [message, setMessage] = useState("");
   const [variant, setVariant] = useState("");
+  const [filterByText, setfilterByText] = useState("");
 
-  const mediaOptions = [{
-    label: 'All',
-    children: [{
-      label: 'Images',
-      value: 'images'
-    }, {
-      label: 'Videos',
-      value: 'videos'
-    }, {
-      label: 'Audios',
-      value: 'audios'
-    }, {
-      label: 'Files',
-      value: 'files'
-    }]
-  }];
+  const mediaOptions = [
+    {
+      label: "All",
+      children: [
+        {
+          label: "Images",
+          value: "images",
+        },
+        {
+          label: "Videos",
+          value: "videos",
+        },
+        {
+          label: "Audios",
+          value: "audios",
+        },
+        {
+          label: "Files",
+          value: "files",
+        },
+      ],
+    },
+  ];
 
   const handleRegenerate = async () => {
     if (regenerating) return;
@@ -38,7 +55,10 @@ const MediaTab = () => {
     setRegenerating(true);
 
     try {
-      const response = await fetchClient.post('/strapi-regenerator/media', { types: values });
+      const response = await fetchClient.post("/strapi-regenerator/media", {
+        types: values,
+        filterByText,
+      });
       if (response.status >= 200 && response.status < 300) {
         setMessage(response.data.message);
         setVariant("success");
@@ -47,7 +67,11 @@ const MediaTab = () => {
         setVariant("danger");
       }
     } catch (error) {
-      setMessage(error.response ? error.response.data.message : "An error occurred during the request.");
+      setMessage(
+        error.response
+          ? error.response.data.message
+          : "An error occurred during the request."
+      );
       setVariant("danger");
     } finally {
       setRegenerating(false);
@@ -61,22 +85,47 @@ const MediaTab = () => {
   return (
     <Box background="neutral0" shadow="tableShadow" padding={10} hasRadius>
       <StyledWrapper>
-        <Typography variant="beta" id="media-items">Media items</Typography>
+        <Typography variant="beta" id="media-items">
+          Media items
+        </Typography>
       </StyledWrapper>
       <StyledWrapper>
-        <MultiSelectNested label="Media item types" required withTags
-          placeholder="Select media item types to regenerate..." onClear={() => setValues([])} 
-          value={values} onChange={setValues} options={mediaOptions} />
+        <MultiSelectNested
+          label="Media item types"
+          required
+          withTags
+          placeholder="Select media item types to regenerate..."
+          onClear={() => setValues([])}
+          value={values}
+          onChange={setValues}
+          options={mediaOptions}
+        />
       </StyledWrapper>
       <StyledWrapper>
-        <Button variant="default" disabled={values.length === 0} onClick={handleRegenerate}>Regenerate</Button>
+        <Typography variant="beta" id="media-items">
+          Enter field name (ex. "blurhash")
+        </Typography>
+        <TextInput
+          label="If the field is populated in the entry, update will be skipped for the corresponded entry. At the moment, this field can take only one field."
+          placeholder="Enter field name"
+          onChange={(e) => setfilterByText(e.target.value.toLowerCase())}
+        />
+      </StyledWrapper>
+      <StyledWrapper>
+        <Button
+          variant="default"
+          disabled={values.length === 0}
+          onClick={handleRegenerate}
+        >
+          Regenerate
+        </Button>
       </StyledWrapper>
       {regenerating ? <Loader>Regenerating media...</Loader> : ""}
-      {requested &&
+      {requested && (
         <Status variant={variant} showBullet={false}>
           <Typography>{message}</Typography>
         </Status>
-      }
+      )}
     </Box>
   );
 };

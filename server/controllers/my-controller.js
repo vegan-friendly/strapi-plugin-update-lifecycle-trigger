@@ -1,93 +1,155 @@
-'use strict';
+"use strict";
+
+const _ = require("lodash");
 
 module.exports = ({ strapi }) => ({
   updateMediaItems: async (ctx) => {
-    try {
-      const { types } = ctx.request.body;
+    const { types, filterByText } = ctx.request.body;
+    const updatedItems = [];
+    const failedItems = [];
 
-      const updates = await Promise.all(types.map(async (type) => {
-        let whereCondition;
-        switch (type) {
-          case 'images':
-            whereCondition = { mime: { $startsWith: 'image/' } };
-            break;
-          case 'videos':
-            whereCondition = { mime: { $startsWith: 'video/' } };
-            break;
-          case 'audios':
-            whereCondition = { mime: { $startsWith: 'audio/' } };
-            break;
-          case 'files':
-            whereCondition = { mime: { $not: { $startsWith: ['image/', 'video/', 'audio/'] } } };
-            break;
-          default:
-            strapi.log.warn(`Unrecognized type: ${type}`);
-            return [];
-        }
+    // Process each media type sequentially
+    for (const type of types) {
+      let whereCondition;
+      switch (type) {
+        case "images":
+          whereCondition = {
+            mime: { $startsWith: "image/" },
+          };
+          if (filterByText) {
+            whereCondition = {
+              mime: { $startsWith: "image/" },
+              [filterByText]: { $null: true },
+            };
+          }
+          break;
+        case "videos":
+          whereCondition = { mime: { $startsWith: "video/" } };
+          break;
+        case "audios":
+          whereCondition = { mime: { $startsWith: "audio/" } };
+          break;
+        case "files":
+          whereCondition = {
+            mime: { $not: { $startsWith: ["image/", "video/", "audio/"] } },
+          };
+          break;
+        default:
+          strapi.log.warn(`Unrecognized type: ${type}`);
+          continue; // Skip unrecognized types
+      }
 
-        const items = await strapi.query('plugin::upload.file').findMany({
-          select: ['id', 'mime'],
-          where: whereCondition
+      let items = [];
+      try {
+        items = await strapi.query("plugin::upload.file").findMany({
+          select: ["id", "mime"],
+          where: whereCondition,
         });
+      } catch (error) {
+        strapi.log.error(
+          `Failed to fetch items for type "${type}": ${error.message}`
+        );
+        continue;
+      }
 
-        return Promise.all(items.map(item => strapi.plugins['upload'].services.upload.update(item.id, {
-          updatedAt: new Date().toISOString()
-        })));
-      }));
-
-      const updatedItems = updates.flat();
-      strapi.log.info(`${updatedItems.length} media items updated successfully.`);
-      ctx.body = { message: `${updatedItems.length} media items updated successfully.` };
-      ctx.status = 200;
-    } catch (error) {
-      strapi.log.error(`An error occurred: ${error.message}`);
-      ctx.body = { message: error.message };
-      ctx.status = 500;
+      // Use Lodash to chunk the items array into batches of 20
+      const chunks = _.chunk(items, 20);
+      for (const chunk of chunks) {
+        await Promise.all(
+          chunk.map(async (item) => {
+            try {
+              const updatedItem = await strapi.plugins[
+                "upload"
+              ].services.upload.update(item.id, {
+                updatedAt: new Date().toISOString(),
+              });
+              updatedItems.push(updatedItem);
+            } catch (error) {
+              strapi.log.error(
+                `Failed to update item ${item.id}: ${error.message}`
+              );
+              failedItems.push(item.id);
+            }
+          })
+        );
+      }
     }
+
+    const message = `${updatedItems.length} media items updated successfully, ${failedItems.length} items failed to update.`;
+    strapi.log.info(message);
+    ctx.body = { message };
+    ctx.status = 200;
   },
 
   listContentTypes: async (ctx) => {
     try {
-      const contentTypes = Object.keys(strapi.contentTypes).filter(type => type.startsWith('api::')).map(type => ({
-        uid: type,
-        name: strapi.contentTypes[type].info.singularName || strapi.contentTypes[type].info.pluralName,
-        kind: strapi.contentTypes[type].kind
-      }));
+      const contentTypes = Object.keys(strapi.contentTypes)
+        .filter((type) => type.startsWith("api::"))
+        .map((type) => ({
+          uid: type,
+          name:
+            strapi.contentTypes[type].info.singularName ||
+            strapi.contentTypes[type].info.pluralName,
+          kind: strapi.contentTypes[type].kind,
+        }));
 
-      strapi.log.info('User-created content types listed successfully.');
+      strapi.log.info("User-created content types listed successfully.");
       ctx.body = { contentTypes };
       ctx.status = 200;
     } catch (error) {
-      strapi.log.error(`An error occurred while listing user-created content types: ${error.message}`);
+      strapi.log.error(
+        `An error occurred while listing content types: ${error.message}`
+      );
       ctx.body = { message: error.message };
       ctx.status = 500;
     }
   },
 
   updateContentItems: async (ctx) => {
-    try {
-      const { types } = ctx.request.body;
+    const { types } = ctx.request.body;
+    const updatedContentItems = [];
+    const failedContentItems = [];
 
-      const updates = await Promise.all(types.map(async (contentType) => {
-        const items = await strapi.entityService.findMany(`${contentType}`, {
-          fields: ['id']
+    // Process each content type sequentially
+    for (const contentType of types) {
+      let items = [];
+      try {
+        items = await strapi.entityService.findMany(`${contentType}`, {
+          fields: ["id"],
         });
+      } catch (error) {
+        strapi.log.error(
+          `Failed to fetch items for content type "${contentType}": ${error.message}`
+        );
+        continue;
+      }
 
-        return Promise.all(items.map(item => strapi.entityService.update(`${contentType}`, item.id, {
-          data: {
-            updatedAt: new Date().toISOString()
-          }
-        })));
-      }));
-
-      const updatedContentItems = updates.flat();
-      strapi.log.info(`${updatedContentItems.length} content items updated successfully.`);
-      ctx.body = { message: `${updatedContentItems.length} content items updated successfully.` };
-      ctx.status = 200;
-    } catch (error) {
-      strapi.log.error(`An error occurred: ${error.message}`);
-      ctx.body = { message: error.message };
-      ctx.status = 500;
+      // Use Lodash to chunk the items array into batches of 20
+      const chunks = _.chunk(items, 20);
+      for (const chunk of chunks) {
+        await Promise.all(
+          chunk.map(async (item) => {
+            try {
+              const updatedItem = await strapi.entityService.update(
+                `${contentType}`,
+                item.id,
+                { data: { updatedAt: new Date().toISOString() } }
+              );
+              updatedContentItems.push(updatedItem);
+            } catch (error) {
+              strapi.log.error(
+                `Failed to update item ${item.id} for content type "${contentType}": ${error.message}`
+              );
+              failedContentItems.push(item.id);
+            }
+          })
+        );
+      }
     }
-  }
+
+    const message = `${updatedContentItems.length} content items updated successfully, ${failedContentItems.length} items failed to update.`;
+    strapi.log.info(message);
+    ctx.body = { message };
+    ctx.status = 200;
+  },
 });
