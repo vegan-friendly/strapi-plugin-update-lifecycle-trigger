@@ -71,7 +71,7 @@ module.exports = ({ strapi }) => ({
       }
 
       // Use Lodash to chunk the items array into batches of 20
-      const chunks = _.chunk(items, 20);
+      const chunks = _.chunk(items, 10);
       for (const chunk of chunks) {
         await Promise.all(
           chunk.map(async (item) => {
@@ -82,6 +82,10 @@ module.exports = ({ strapi }) => ({
                 updatedAt: new Date().toISOString(),
               });
               updatedItems.push(updatedItem);
+              strapi.log.debug(
+                "item successfuly updated",
+                updatedItem.blurhash
+              );
             } catch (error) {
               strapi.log.error(
                 `Failed to update item ${item.id}: ${error.message}`
@@ -90,6 +94,7 @@ module.exports = ({ strapi }) => ({
             }
           })
         );
+        strapi.log.debug(`finished updating items for the current chunk ${chunks.indexOf(chunk) + 1} of ${chunks.length}, moving to the next one`);
       }
     }
 
