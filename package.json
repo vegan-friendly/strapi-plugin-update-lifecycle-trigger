@@ -1,6 +1,6 @@
 {
   "name": "@vegan-friendly/strapi-plugin-update-lifecycle-trigger",
-  "version": "1.0.12",
+  "version": "1.0.21",
   "description": "A plugin for Strapi CMS that automates the triggering of update events for Strapi items, streamlining content and media management.",
   "keywords": [
     "strapi",

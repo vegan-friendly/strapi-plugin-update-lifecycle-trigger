@@ -3,8 +3,9 @@
 const _ = require("lodash");
 
 module.exports = ({ strapi }) => ({
-  updateMediaItems: async (ctx) => {
-    const { types, filterByText } = ctx.request.body;
+  updateMediaItems: async function (ctx) {
+    const { types, options } = ctx.request.body;
+    const { limit, chunkSize, sleepDuration, filterByText } = options;
     const updatedItems = [];
     const failedItems = [];
 
@@ -13,9 +14,7 @@ module.exports = ({ strapi }) => ({
       let whereCondition;
       switch (type) {
         case "images":
-          whereCondition = {
-            mime: { $startsWith: "image/" },
-          };
+          whereCondition = { mime: { $startsWith: "image/" } };
           if (filterByText) {
             whereCondition = {
               mime: { $startsWith: "image/" },
@@ -59,9 +58,10 @@ module.exports = ({ strapi }) => ({
 
       let items = [];
       try {
-        items = await strapi.query("plugin::upload.file").findMany({
+        items = await strapi.db.query("plugin::upload.file").findMany({
           select: ["id", "mime"],
           where: whereCondition,
+          limit: limit,
         });
       } catch (error) {
         strapi.log.error(
@@ -70,9 +70,10 @@ module.exports = ({ strapi }) => ({
         continue;
       }
 
-      // Use Lodash to chunk the items array into batches of 20
-      const chunks = _.chunk(items, 10);
+      const chunks = _.chunk(items, chunkSize);
       for (const chunk of chunks) {
+        let chunkSuccess = 0;
+        let chunkFailure = 0;
         await Promise.all(
           chunk.map(async (item) => {
             try {
@@ -82,19 +83,23 @@ module.exports = ({ strapi }) => ({
                 updatedAt: new Date().toISOString(),
               });
               updatedItems.push(updatedItem);
-              strapi.log.debug(
-                "item successfuly updated",
-                updatedItem.blurhash
-              );
+              chunkSuccess++;
             } catch (error) {
-              strapi.log.error(
-                `Failed to update item ${item.id}: ${error.message}`
-              );
               failedItems.push(item.id);
+              chunkFailure++;
             }
           })
         );
-        strapi.log.debug(`finished updating items for the current chunk ${chunks.indexOf(chunk) + 1} of ${chunks.length}, moving to the next one`);
+        strapi.log.debug(
+          `finished updating items for the current chunk ${
+            chunks.indexOf(chunk) + 1
+          } of ${
+            chunks.length
+          } with ${chunkSuccess} successes and ${chunkFailure} failures, moving to the next one`
+        );
+
+        // Sleep for the specified duration before processing the next chunk
+        await new Promise((resolve) => _.delay(resolve, sleepDuration));
       }
     }
 
@@ -147,25 +152,32 @@ module.exports = ({ strapi }) => ({
         continue;
       }
 
-      // Use Lodash to chunk the items array into batches of 20
-      const chunks = _.chunk(items, 20);
+      const chunks = _.chunk(items, chunkSize);
       for (const chunk of chunks) {
         await Promise.all(
           chunk.map(async (item) => {
             try {
-              const updatedItem = await strapi.entityService.update(
-                `${contentType}`,
-                item.id,
-                { data: { updatedAt: new Date().toISOString() } }
+              const updatedItem = await strapi.plugins[
+                "upload"
+              ].services.upload.update(item.id, {
+                updatedAt: new Date().toISOString(),
+              });
+              updatedItems.push(updatedItem);
+              strapi.log.debug(
+                `item ${updatedItem.id} successfuly updated with blurhash: ${updatedItem.blurhash}`
               );
-              updatedContentItems.push(updatedItem);
             } catch (error) {
               strapi.log.error(
-                `Failed to update item ${item.id} for content type "${contentType}": ${error.message}`
+                `Failed to update item ${item.id}: ${error.message}`
               );
-              failedContentItems.push(item.id);
+              failedItems.push(item.id);
             }
           })
+        );
+        strapi.log.debug(
+          `finished updating items for the current chunk ${
+            chunks.indexOf(chunk) + 1
+          } of ${chunks.length}, moving to the next one`
         );
       }
     }
