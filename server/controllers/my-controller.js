@@ -25,14 +25,32 @@ module.exports = ({ strapi }) => ({
           break;
         case "videos":
           whereCondition = { mime: { $startsWith: "video/" } };
+          if (filterByText) {
+            whereCondition = {
+              mime: { $startsWith: "video/" },
+              [filterByText]: { $null: true },
+            };
+          }
           break;
         case "audios":
           whereCondition = { mime: { $startsWith: "audio/" } };
+          if (filterByText) {
+            whereCondition = {
+              mime: { $startsWith: "audio/" },
+              [filterByText]: { $null: true },
+            };
+          }
           break;
         case "files":
           whereCondition = {
             mime: { $not: { $startsWith: ["image/", "video/", "audio/"] } },
           };
+          if (filterByText) {
+            whereCondition = {
+              mime: { $not: { $startsWith: ["image/", "video/", "audio/"] } },
+              [filterByText]: { $null: true },
+            };
+          }
           break;
         default:
           strapi.log.warn(`Unrecognized type: ${type}`);
