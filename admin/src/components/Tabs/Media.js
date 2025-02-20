@@ -103,10 +103,12 @@ const MediaTab = () => {
       </StyledWrapper>
       <StyledWrapper>
         <Typography variant="beta" id="media-items">
-          Enter field name (ex. "blurhash")
+          Skip if following field is populated (e.g. "blurhash")
         </Typography>
         <TextInput
-          label="If the field is populated in the entry, update will be skipped for the corresponded entry. At the moment, this field can take only one field."
+          label="If the field with this name is populated in the entry, update will be skipped for this entry.
+Leave this box empty to update all entries.
+At the moment, this field can take only one field-name parameter."
           placeholder="Enter field name"
           onChange={(e) => setfilterByText(e.target.value.toLowerCase())}
         />
