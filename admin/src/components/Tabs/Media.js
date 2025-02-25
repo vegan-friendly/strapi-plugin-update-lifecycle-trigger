@@ -19,7 +19,7 @@ const StyledWrapper = styled.div`
 const DEFAULT_LIMIT = -1; // if -1, no limit
 const DEFAULT_CHUNK_SIZE = 10;
 const CHUNK_SIZE_MIN = 1;
-const CHUNK_SIZE_MAX = 20;
+const CHUNK_SIZE_MAX = 500;
 const DEFAULT_SLEEP_DURATION = 5000; //5 second
 
 const MediaTab = () => {
@@ -45,10 +45,15 @@ const MediaTab = () => {
   };
 
   const handleLimitChange = (e) => {
-    if (e.target.value === "" || !e.target.value || e.target.value < -1 || e.target.value === 0) {
+    if (
+      e.target.value === "" ||
+      !e.target.value ||
+      e.target.value < -1 ||
+      e.target.value === 0
+    ) {
       setLimit(DEFAULT_LIMIT);
     } else {
-      setLimit(parseInt(e.target.value));
+      setLimit(e.target.value);
     }
   };
 
@@ -82,11 +87,12 @@ const MediaTab = () => {
     setRegenerating(true);
 
     const options = {
-      limit: limit,
-      chunkSize: chunkSize,
-      sleepDuration: sleepDuration,
+      limit: +limit,
+      chunkSize: +chunkSize,
+      sleepDuration: +sleepDuration,
       filterByText: filterByText.toLowerCase().trim(),
     };
+    console.log("options", options);
 
     try {
       const response = await fetchClient.post("/strapi-regenerator/media", {

@@ -58,11 +58,16 @@ module.exports = ({ strapi }) => ({
 
       let items = [];
       try {
-        items = await strapi.db.query("plugin::upload.file").findMany({
+        const queryOptions = {
           select: ["id", "mime"],
           where: whereCondition,
-          limit: limit,
-        });
+        };
+        if (+limit > 0) {
+          queryOptions.limit = +limit;
+        }
+        items = await strapi.db
+          .query("plugin::upload.file")
+          .findMany(queryOptions);
       } catch (error) {
         strapi.log.error(
           `Failed to fetch items for type "${type}": ${error.message}`
